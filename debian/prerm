@@ -1,0 +1,11 @@
+#!/bin/bash
+#Remove .pyc files.
+find /usr/lib/python3/dist-packages/getdevinfo -name '*.pyc' | xargs rm > /dev/null 2> /dev/null || true
+find /usr/lib/python3/dist-packages/getdevinfo-1.0.9.dist-info -name '*.pyc' | xargs rm > /dev/null 2> /dev/null || true
+
+#Remove the __pycache__ folders, if they exist.
+find /usr/lib/python3/dist-packages/getdevinfo -name '__pycache__' | xargs rmdir > /dev/null 2> /dev/null || true
+
+#DEBHELPER#
+
+exit 0

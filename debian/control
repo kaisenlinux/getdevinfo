@@ -1,0 +1,12 @@
+Source: python3-getdevinfo
+Section: utils
+Priority: extra
+XSBC-Original-Maintainer: Hamish McIntyre-Bhatty <hamishmb@live.co.uk>
+Maintainer: Kevin Chevreuil - Kaisen <kaisen@kaisen-linux.org>
+Build-Depends: debhelper (>= 5), cdbs (>= 0.2)
+Standards-Version: 3.9.7
+
+Package: python3-getdevinfo
+Architecture: all
+Depends: python3, lshw, lvm2, util-linux, python3-bs4, python3-lxml, binutils, coreutils (>= 8.21), ${misc:Depends}
+Description: A python library that can be used to gather all sorts of information about the storage devices connected to a system.

@@ -1,0 +1,13 @@
+python3-getdevinfo (4:1.0.10+kaisen1) kaisen-devel; urgency=medium
+
+  * Rebuilding for Kaisen Linux Rolling
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisen-linux.org>  Mon, 23 Mar 2020 10:41:34 +0200
+
+python3-getdevinfo (4:1.0.10~focal-0ubuntu1~ppa1) focal; urgency=low
+  * Changes since v1.0.9:
+
+  * Fix a few more NVME-related bugs.
+  * Fix a few problems where LVM logical volume and volume group names were swapped.
+
+ -- Hamish T. McIntyre-Bhatty (PGP key for signing launchpad packages) <hamishmb@live.co.uk>  Mon, 23 Mar 2020 15:10:52 +0000
