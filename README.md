@@ -1,43 +1,14 @@
-Metadata-Version: 2.1
-Name: getdevinfo
-Version: 1.0.10
-Summary: A device information gatherer for Linux and macOS
-Home-page: https://www.hamishmb.com/
-Author: Hamish McIntyre-Bhatty
-Author-email: hamishmb@live.co.uk
-License: GPLv3+
-Keywords: devices hardware
-Platform: UNKNOWN
-Classifier: Development Status :: 5 - Production/Stable
-Classifier: Intended Audience :: Developers
-Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
-Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
-Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.4
-Classifier: Programming Language :: Python :: 3.5
-Classifier: Programming Language :: Python :: 3.6
-Classifier: Programming Language :: Python :: 3.7
-Classifier: Programming Language :: Python :: 3.8
-Classifier: Environment :: MacOS X
-Classifier: Environment :: Console
-Classifier: Natural Language :: English
-Classifier: Operating System :: MacOS :: MacOS X
-Classifier: Operating System :: POSIX :: Linux
-Classifier: Programming Language :: Python :: 3
-Classifier: Topic :: Utilities
-Requires-Python: >=2.8, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*
-Requires-Dist: beautifulsoup4
-Requires-Dist: lxml
-
 # getdevinfo
 
 This repository holds my new getdevinfo module. This module was originally integreted directly into the source code of Wine Autostart, DDRescue-GUI, and WxFixBoot, but has now been separated for ease of maintenance. Because it's on GitLab (https://gitlab.com/hamishmb/getdevinfo) and on PyPI (the Python Package Index) (https://pypi.org/project/getdevinfo/), and released under the GPLv3+, this means other people can use it too.
 
 Description of Package
 ======================
-A device information gatherer for Linux and macOS.
+A device information gatherer for Linux, macOS and Cygwin/Windows.
 
-Working on both Linux and macOS, this script makes use of lshw, lvdisplay, and blkid (Linux), as well as diskutil (macOS) to get a comprehensive amount of disk information. This information is available in a structured dictionary for ease of use.
+Working on both Linux, macOS and Cygwin, this script makes use of lshw, lvdisplay, and blkid (Linux), as well as diskutil (macOS) and smartctl and blkid (Cygwin) to get a comprehensive amount of disk information. This information is available in a structured dictionary for ease of use.
+
+NOTE: Cygwin is supported since v1.1.0, Python 2 is unsupported since v1.0.7.
 
 Features:
 ---------
@@ -47,7 +18,7 @@ Uses the operating system\'s built-in tools to gather lots of helpful informatio
 Dependencies:
 -------------
 
-On Linux it requires lshw, blkid, lvdisplay, and blockdev to be installed. On Linux, you need the beautifulsoup4 (bs4), and lxml python packages to use this tool. On macOS, nothing beyond a standard python3.x install is required, but you still need bs4 and lxml if you want to install using the python wheel/through pip.
+On Linux it requires lshw, blkid, lvdisplay, and blockdev to be installed. On Cygwin, you need the smartmontools and util-linux packages. On Linux and Cygwin, you also need the beautifulsoup4 (bs4), and lxml python packages to use this tool. On macOS, nothing beyond a standard python3.x install is required, but you still need bs4 and lxml if you want to install using the python wheel/through pip.
 
 Building
 ========
@@ -106,7 +77,7 @@ Or (v1.0.8 onwards):
 Running The Tests
 =================
 
-These have to be run as the superuser, because low-level access to hardware is required to gather information.
+These have to be run as the superuser/administrator, because low-level access to hardware is required to gather information.
 
 The process for running these is the same on both Linux and macOS. Note that prior to version 1.0.7, GetDevInfo ran on Python 2 as well.
 
@@ -129,5 +100,3 @@ To run the tests. Then run:
 "sudo python3 -m coverage report"
 
 To see the report.
-
-

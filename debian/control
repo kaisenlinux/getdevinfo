@@ -2,9 +2,11 @@ Source: python3-getdevinfo
 Section: utils
 Priority: extra
 XSBC-Original-Maintainer: Hamish McIntyre-Bhatty <hamishmb@live.co.uk>
-Maintainer: Kevin Chevreuil - Kaisen <kaisen@kaisen-linux.org>
-Build-Depends: debhelper (>= 5), cdbs (>= 0.2)
-Standards-Version: 3.9.7
+Maintainer: Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>
+Build-Depends: debhelper (>= 9), cdbs (>= 0.2)
+Standards-Version: 4.5.1
+Vcs-Git: https://gitlab.com/kaisenlinux/packages/python3-getdevinfo.git
+Vcs-Browser: https://gitlab.com/kaisenlinux/packages/python3-getdevinfo
 
 Package: python3-getdevinfo
 Architecture: all

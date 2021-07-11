@@ -418,7 +418,12 @@ def assemble_lvm_disk_info(line_counter, testing=False):
 
         elif "Physical volume" in line:
             DISKINFO[volume]["HostPartition"] = line.split()[-1]
-            DISKINFO[volume]["HostDevice"] = DISKINFO[DISKINFO[volume]["HostPartition"]]["HostDevice"]
+
+            if DISKINFO[volume]["HostPartition"] in DISKINFO:
+                DISKINFO[volume]["HostDevice"] = DISKINFO[DISKINFO[volume]["HostPartition"]]["HostDevice"]
+
+            else:
+                DISKINFO[volume]["HostDevice"] = "Unknown"
 
     #If there are any entries called "Unknown" (disks that we couldn't get the name for), remove them now to prevent issues.
     if "Unknown" in DISKINFO:
@@ -448,10 +453,6 @@ def parse_lsblk_output():
 
     for disk in data["blockdevices"]:
         host_disk = "/dev/"+disk["name"]
-
-        #If this is not an NVME disk, ignore it.
-        if "nvme" not in host_disk:
-            continue
 
         #If this disk is already in the DISKINFO dictionary, ignore it.
         if host_disk in DISKINFO:
@@ -794,6 +795,16 @@ def get_file_system(node):
     file_system = "Unknown"
 
     try:
+        if isinstance(node.logicalname.string, bytes):
+            diskname = node.logicalname.string.decode("utf-8") #NOTE: is this ever bytes?
+
+        else:
+            diskname = node.logicalname.string
+
+    except AttributeError:
+        pass
+
+    try:
         for config in node.configuration.children:
             if (not isinstance(config, bs4.element.Tag)) or config.name != "setting":
                 continue
@@ -812,7 +823,13 @@ def get_file_system(node):
                 break
 
     except AttributeError:
-        return "Unknown"
+        #Fall back to LVM equivelant (works on all disks and
+        #detects some things that lshw does not).
+        if diskname != "Unknown":
+            return get_lv_file_system(diskname)
+
+        else:
+            return "Unknown"
 
     else:
         return file_system
@@ -955,7 +972,7 @@ def get_lv_file_system(disk):
     if isinstance(output, bytes):
         output = output.decode("utf-8", errors="replace")
 
-    return output.split("=")[-1].replace("\"", "").replace("\n", "")
+    return output.split("TYPE=")[-1].split(" ")[0].replace("\"", "").replace("\n", "")
 
 def get_lv_aliases(line):
     """
@@ -1084,9 +1101,9 @@ def get_block_size(disk):
     """
 
     #Run /sbin/blockdev to try and get blocksize information.
-    command = "blockdev --getpbsz "+disk
+    command = ["blockdev",  "--getpbsz", disk]
 
-    runcmd = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    runcmd = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     #Get the output and pass it to compute_block_size.
     return compute_block_size(runcmd.communicate()[0].decode("utf-8", errors="replace"))
