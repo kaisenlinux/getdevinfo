@@ -1,3 +1,9 @@
+python3-getdevinfo (5:1.1.1-1kaisen) kaisen-packages; urgency=medium
+
+  * Add homepage link
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Sun, 09 Jan 2022 03:33:19 +0100
+
 python3-getdevinfo (4:1.1.1-kaisen) kaisen-packages; urgency=medium
 
   * Import new upstream release

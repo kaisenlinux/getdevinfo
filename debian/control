@@ -4,11 +4,12 @@ Priority: extra
 XSBC-Original-Maintainer: Hamish McIntyre-Bhatty <hamishmb@live.co.uk>
 Maintainer: Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>
 Build-Depends: debhelper (>= 9), cdbs (>= 0.2)
-Standards-Version: 4.5.1
+Standards-Version: 4.6.0
+Homepage: https://www.hamishmb.com/html/downloads.php?program_name=getdevinfo
 Vcs-Git: https://gitlab.com/kaisenlinux/packages/python3-getdevinfo.git
 Vcs-Browser: https://gitlab.com/kaisenlinux/packages/python3-getdevinfo
 
 Package: python3-getdevinfo
 Architecture: all
-Depends: python3, lshw, lvm2, util-linux, python3-bs4, python3-lxml, binutils, coreutils (>= 8.21), ${misc:Depends}
-Description: A python library that can be used to gather all sorts of information about the storage devices connected to a system.
+Depends: python3, lshw, lvm2, util-linux, python3-bs4, python3-lxml, binutils, coreutils (>= 8.21), ${python3:Depends}, ${misc:Depends}
+Description: A python library that can be used to gather all sorts of information about the storage devices connected to a system
