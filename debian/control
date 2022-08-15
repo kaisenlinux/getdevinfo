@@ -1,13 +1,13 @@
-Source: python3-getdevinfo
+Source: getdevinfo
 Section: utils
 Priority: extra
 XSBC-Original-Maintainer: Hamish McIntyre-Bhatty <hamishmb@live.co.uk>
 Maintainer: Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>
 Build-Depends: debhelper (>= 9), cdbs (>= 0.2)
-Standards-Version: 4.6.0
+Standards-Version: 4.6.0.1
 Homepage: https://www.hamishmb.com/html/downloads.php?program_name=getdevinfo
-Vcs-Git: https://gitlab.com/kaisenlinux/packages/python3-getdevinfo.git
-Vcs-Browser: https://gitlab.com/kaisenlinux/packages/python3-getdevinfo
+Vcs-Git: https://gitlab.com/kaisenlinux/packages/getdevinfo.git
+Vcs-Browser: https://gitlab.com/kaisenlinux/packages/getdevinfo
 
 Package: python3-getdevinfo
 Architecture: all

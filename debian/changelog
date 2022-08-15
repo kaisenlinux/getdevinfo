@@ -1,23 +1,29 @@
-python3-getdevinfo (5:1.1.1-1kaisen) kaisen-packages; urgency=medium
+getdevinfo (5:2.0.0-1kaisen) kaisen-packages; urgency=medium
+
+  * Import 2.0.0 version
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Sun, 14 Aug 2022 20:17:58 +0100
+
+getdevinfo (5:1.1.1-1kaisen) kaisen-packages; urgency=medium
 
   * Add homepage link
 
  -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Sun, 09 Jan 2022 03:33:19 +0100
 
-python3-getdevinfo (4:1.1.1-kaisen) kaisen-packages; urgency=medium
+getdevinfo (4:1.1.1-kaisen) kaisen-packages; urgency=medium
 
   * Import new upstream release
   * Quilt package
 
  -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Mon, 12 Jul 2021 01:03:28 +0200
 
-python3-getdevinfo (4:1.0.10+kaisen1) kaisen-devel; urgency=medium
+getdevinfo (4:1.0.10+kaisen1) kaisen-devel; urgency=medium
 
   * Rebuilding for Kaisen Linux Rolling
 
  -- Kevin Chevreuil - Kaisen <kaisen@kaisen-linux.org>  Mon, 23 Mar 2020 10:41:34 +0200
 
-python3-getdevinfo (4:1.0.10~focal-0ubuntu1~ppa1) focal; urgency=low
+getdevinfo (4:1.0.10~focal-0ubuntu1~ppa1) focal; urgency=low
   * Changes since v1.0.9:
 
   * Fix a few more NVME-related bugs.

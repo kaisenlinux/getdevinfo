@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # macOS Functions For The Device Information Obtainer
 # This file is part of GetDevInfo.
-# Copyright (C) 2013-2020 Hamish McIntyre-Bhatty
+# Copyright (C) 2013-2022 Hamish McIntyre-Bhatty
 # GetDevInfo is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3 or,
 # at your option, any later version.
@@ -41,7 +41,7 @@ module, but you can call it directly if you like.
     :synopsis: The part of the GetDevInfo module that houses the macOS
                tools.
 
-.. moduleauthor:: Hamish McIntyre-Bhatty <hamishmb@live.co.uk>
+.. moduleauthor:: Hamish McIntyre-Bhatty <support@hamishmb.com>
 
 """
 
@@ -51,6 +51,7 @@ import plistlib
 #Define global variables to make pylint happy.
 DISKINFO = None
 PLIST = None
+ERRORS = []
 
 def get_info():
     """
@@ -75,24 +76,62 @@ def get_info():
     DISKINFO = {}
 
     #Run diskutil list to get disk names.
-    runcmd = subprocess.Popen("diskutil list -plist", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    try:
+        cmd = subprocess.run(["diskutil", "list", "-plist"], stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, check=True)
 
-    #Get the output.
-    stdout = runcmd.communicate()[0]
+    except (OSError, subprocess.CalledProcessError) as err:
+        ERRORS.append("macos.get_info(): Exception: "+str(err)+" while running "
+                      + "diskutil list\n")
+
+        return
+
+    else:
+        #Get the output.
+        #Keep this in bytes as plistlib.loads requires bytes (misleading function name)
+        stdout = cmd.stdout
 
     #Parse the plist (Property List).
     global PLIST
 
-    PLIST = plistlib.loads(stdout)
+    try:
+        PLIST = plistlib.loads(stdout)
+
+    except Exception as err:
+        #TODO find which specific exceptions to handle, not in docs.
+        ERRORS.append("macos.get_info(): Error parsing plist from diskutil list."
+                      + " Output: " +stdout.decode("utf-8", errors="replace")+". Exception: "+str(err)+"\n")
+
+        return
 
     #Find the disks.
     for disk in PLIST["AllDisks"]:
         #Run diskutil info to get disk info.
-        runcmd = subprocess.Popen("diskutil info -plist "+disk, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
-        stdout = runcmd.communicate()[0]
+        try:
+            cmd = subprocess.run(["diskutil", "info", "-plist", disk], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, check=True)
+
+        except (OSError, subprocess.CalledProcessError) as err:
+            ERRORS.append("macos.get_info(): Exception: "+str(err)+" while running "
+                          + "diskutil info\n")
+
+            continue
+
+        else:
+            #Get the output.
+            #Keep this in bytes as plistlib.loads requires bytes (misleading function name)
+            stdout = cmd.stdout
 
         #Parse the plist (Property List).
-        PLIST = plistlib.loads(stdout)
+        try:
+            PLIST = plistlib.loads(stdout)
+
+        except Exception as err:
+            #TODO find which specific exceptions to handle, not in docs.
+            ERRORS.append("macos.get_info(): Error parsing plist from diskutil info."
+                          + " Output: " +stdout.decode("utf-8", errors="replace")+". Exception: "+str(err)+"\n")
+
+            continue
 
         #Check if the disk is a partition.
         disk_is_partition = is_partition(disk)
@@ -193,7 +232,7 @@ def get_partition_info(disk, host_disk):
 
     return volume
 
-def is_partition(disk): #TODO: Could change to use "Whole" attrib. Good idea?
+def is_partition(disk):
     """
     Private, implementation detail.
 
@@ -239,14 +278,13 @@ def get_vendor(disk):
         #We need to use the info from the host disk, which will be whatever came before.
         return DISKINFO[DISKINFO["/dev/"+disk]["HostDevice"]]["Vendor"]
 
-    else:
-        try:
-            vendor = PLIST["MediaName"].split()[0]
+    try:
+        vendor = PLIST["MediaName"].split()[0]
 
-        except KeyError:
-            vendor = "Unknown"
+    except KeyError:
+        vendor = "Unknown"
 
-        return vendor
+    return vendor
 
 def get_product(disk):
     """
@@ -272,14 +310,13 @@ def get_product(disk):
         #We need to use the info from the host disk, which will be whatever came before.
         return DISKINFO[DISKINFO["/dev/"+disk]["HostDevice"]]["Product"]
 
-    else:
-        try:
-            product = ' '.join(PLIST["MediaName"].split()[1:])
+    try:
+        product = ' '.join(PLIST["MediaName"].split()[1:])
 
-        except KeyError:
-            product = "Unknown"
+    except KeyError:
+        product = "Unknown"
 
-        return product
+    return product
 
 def get_capacity():
     """
@@ -377,26 +414,25 @@ def get_description(disk):
     apfs_string = ""
 
     if "Content" in PLIST.keys() and PLIST["Content"] == "Apple_APFS":
-        apfs_string = " (APFS Physical Store)"
+        apfs_string = "(APFS Physical Store)"
 
     elif "APFSContainerReference" in PLIST.keys() and PLIST["APFSContainerReference"] == disk:
-        apfs_string = " (APFS Container)"
+        apfs_string = "(APFS Container)"
 
     elif "FilesystemType" in PLIST.keys() and PLIST["FilesystemType"] == "apfs":
-        apfs_string = " (APFS Volume)"
+        apfs_string = "(APFS Volume)"
 
     #Assemble info into a string.
-    if bus_protocol != "Unknown":
+    if bus_protocol not in ("Unknown", "", " "):
         return internal_or_external+disk_type+"(Connected through "+bus_protocol+")"+apfs_string
 
-    elif disk_type != "Unknown ":
+    if disk_type != "Unknown ":
         return internal_or_external+disk_type+apfs_string
 
-    elif internal_or_external != "Unknown ":
+    if internal_or_external != "Unknown ":
         return internal_or_external+"Unknown Disk"+apfs_string
 
-    else:
-        return "N/A"
+    return "N/A"
 
 def get_capabilities(disk):
     """
@@ -452,9 +488,9 @@ def get_block_size(disk):
 
     .. note:
         It is perfectly safe to use this. The block size information
-        isn't calculated when getting device information, so if you
-        need some, just call this function with a device name to get
-        it.
+        is calculated on demand, rather that when collecting device
+        information - just call this function with a device name to get
+        the block size.
 
     This function uses the diskutil info command to get the block size
     of the given device.
@@ -477,10 +513,19 @@ def get_block_size(disk):
     #Run diskutil list to get disk names.
     command = ["diskutil", "info", "-plist", disk]
 
-    runcmd = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        cmd = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
 
-    #Get the output and pass it to compute_block_size.
-    return compute_block_size(disk, runcmd.communicate()[0])
+    except (OSError, subprocess.CalledProcessError) as err:
+        ERRORS.append("macos.get_block_size(): Exception: "+str(err)+" while running "
+                      + "diskutil info\n")
+
+        return None
+
+    else:
+        #Get the output and pass it to compute_block_size.
+        #Keep this in bytes as plistlib.loads requires bytes (misleading function name)
+        return compute_block_size(disk, cmd.stdout)
 
 def compute_block_size(disk, stdout):
     """
@@ -506,7 +551,11 @@ def compute_block_size(disk, stdout):
     try:
         plist = plistlib.loads(stdout)
 
-    except:
+    except Exception as err:
+        #TODO find which specific exceptions to handle, not in docs.
+        ERRORS.append("macos.compute_block_size(): Error parsing plist from diskutil info."
+                      + " Output: " +stdout.decode("utf-8", errors="replace")+". Exception: "+str(err)+"\n")
+
         return None
 
     else:

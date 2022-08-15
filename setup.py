@@ -50,13 +50,13 @@ with open("README.md", "r") as fh:
 
 setup(
     name='getdevinfo',
-    version='1.1.1',
+    version='2.0.0',
     description='A device information gatherer for Linux, macOS, and Cygwin/Windows',
     long_description=long_description,
+    long_description_content_type='text/markdown',
 
     url='https://www.hamishmb.com/',
     author='Hamish McIntyre-Bhatty',
-    author_email='hamishmb@live.co.uk',
     license='GPLv3+',
 
     classifiers=[
@@ -68,11 +68,11 @@ setup(
 
         #Python versions.
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
 
         #Misc.
         'Environment :: MacOS X',

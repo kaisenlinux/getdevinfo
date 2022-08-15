@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Unit tests for GetDevInfo
 # This file is part of GetDevInfo.
-# Copyright (C) 2013-2020 Hamish McIntyre-Bhatty
+# Copyright (C) 2013-2022 Hamish McIntyre-Bhatty
 # GetDevInfo is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3 or,
 # at your option, any later version.
@@ -24,7 +24,7 @@ import platform
 import os
 
 #Global vars.
-VERSION = "1.1.1"
+VERSION = "2.0.0"
 
 #Determine the platform.
 LINUX = ("linux" in sys.platform)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Cygwin Functions For The Device Information Obtainer
 # This file is part of GetDevInfo.
-# Copyright (C) 2013-2020 Hamish McIntyre-Bhatty
+# Copyright (C) 2013-2022 Hamish McIntyre-Bhatty
 # GetDevInfo is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3 or,
 # at your option, any later version.
@@ -40,7 +40,7 @@ module, but you can call it directly if you like.
     :synopsis: The part of the GetDevInfo module that houses the Cygwin
                tools.
 
-.. moduleauthor:: Hamish McIntyre-Bhatty <hamishmb@live.co.uk>
+.. moduleauthor:: Hamish McIntyre-Bhatty <support@hamishmb.com>
 
 """
 
@@ -63,6 +63,7 @@ else:
 
 #Define global variables to make pylint happy.
 DISKINFO = None
+ERRORS = []
 
 def get_info():
     """
@@ -146,33 +147,43 @@ def get_device_info(host_disk):
         except OSError:
             count += 1
 
+        except subprocess.CalledProcessError as err:
+            ERRORS.append("cygwin.get_block_size(): Error encountered running smartctl: "
+                          + str(err)+"\n")
+
         else:
             break
 
-    try:
-        data = json.loads(output)
+    if output == "":
+        #Fork/other error encountered.
+        ERRORS.append("cygwin.get_device_info(): Fork or other error encountered too many"
+                      + " times trying to run smartctl\n")
 
-    except ValueError:
-        #Not a valid JSON document!
         return host_disk
+
+    else:
+        try:
+            data = json.loads(output)
+
+        except ValueError:
+            #Not a valid JSON document!
+            ERRORS.append("cygwin.get_device_info(): smartctl output is not valid JSON! Output: "
+                          + output+"\n")
+
+            return host_disk
 
     #Vendor and product.
     if "model_name" in data.keys():
         DISKINFO[host_disk]["Vendor"] = get_vendor(data)
-
-        try:
-            DISKINFO[host_disk]["Product"] = get_product(data)
-
-        except IndexError:
-            DISKINFO[host_disk]["Product"] = "Unknown"
+        DISKINFO[host_disk]["Product"] = get_product(data)
 
     else:
         DISKINFO[host_disk]["Vendor"] = "Unknown"
         DISKINFO[host_disk]["Product"] = "Unknown"
 
     #Ignore capacities for all optical media.
-    if "/dev/cdrom" not in host_disk and "/dev/sr" not in host_disk and "/dev/dvd" not in host_disk \
-        and "user_capacity" in data:
+    if "/dev/cdrom" not in host_disk and "/dev/sr" not in host_disk \
+        and "/dev/dvd" not in host_disk and "user_capacity" in data:
 
         DISKINFO[host_disk]["RawCapacity"], DISKINFO[host_disk]["Capacity"] = get_capacity(data)
 
@@ -180,8 +191,6 @@ def get_device_info(host_disk):
         DISKINFO[host_disk]["RawCapacity"], DISKINFO[host_disk]["Capacity"] = ("N/A", "N/A")
 
     DISKINFO[host_disk]["Description"] = get_description(data, host_disk)
-
-    #TODO
     DISKINFO[host_disk]["Flags"] = get_capabilities(host_disk)
 
     #Get blkid output for these.
@@ -195,16 +204,22 @@ def get_device_info(host_disk):
                 cmd = subprocess.run([BLKID, host_disk, "-o", "export"], stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT, check=True)
 
-            except OSError:
+            except OSError as error:
                 count += 1
 
                 if count >= 5:
-                    raise subprocess.CalledProcessError(None, "Fork error encountered too many times")
+                    ERRORS.append("cygwin.get_device_info(): Fork error encountered too many"
+                                  + " times trying to run blkid\n")
+
+                    raise subprocess.CalledProcessError(None, "Fork error encountered too many times") from error
 
             else:
                 break
 
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as err:
+        ERRORS.append("cygwin.get_device_info(): subprocess.CalledProcessError encountered"
+                      + " trying to run blkid. Error: "+str(err)+"\n")
+
         DISKINFO[host_disk]["Partitioning"] = "Unknown"
         DISKINFO[host_disk]["FileSystem"] = "Unknown"
         DISKINFO[host_disk]["UUID"] = "Unknown"
@@ -216,12 +231,11 @@ def get_device_info(host_disk):
         DISKINFO[host_disk]["FileSystem"] = get_file_system(output)
         DISKINFO[host_disk]["UUID"] = get_uuid(output)
 
-    #TODO.
     DISKINFO[host_disk]["ID"] = get_id(host_disk)
 
     #Don't try to get Boot Records for optical drives.
     if "/dev/cdrom" in host_disk or "/dev/sr" in host_disk or "/dev/dvd" in host_disk:
-        DISKINFO[host_disk]["BootRecord"], DISKINFO[host_disk]["BootRecordStrings"] = (b"N/A", [b"N/A"])
+        DISKINFO[host_disk]["BootRecord"], DISKINFO[host_disk]["BootRecordStrings"] = ("N/A", ["N/A"])
 
     else:
         DISKINFO[host_disk]["BootRecord"], DISKINFO[host_disk]["BootRecordStrings"] = get_boot_record(host_disk)
@@ -256,67 +270,6 @@ def get_partition_info(subnode, host_disk):
     """
     #TODO not yet implemented on Cygwin.
     return
-
-    try:
-        if isinstance(subnode.logicalname.string, bytes):
-            #NOTE: is this ever bytes?
-            volume = subnode.logicalname.string.decode("utf-8")
-
-        else:
-            volume = subnode.logicalname.string
-
-    except AttributeError:
-        if isinstance(subnode.physid.string, bytes):
-            #NOTE: is this ever bytes?
-            if "nvme" in host_disk:
-                volume = host_disk+"p"+subnode.physid.string.decode("utf-8")
-
-            else:
-                volume = host_disk+subnode.physid.string.decode("utf-8")
-
-        else:
-            if "nvme" in host_disk:
-                volume = host_disk+"p"+subnode.physid.string
-
-            else:
-                volume = host_disk+subnode.physid.string
-
-    #Fix bug on Pmagic, if the volume already exists in DISKINFO, or if it is an optical drive, ignore it here.
-    if volume in DISKINFO or "/dev/cdrom" in volume or "/dev/sr" in volume or "/dev/dvd" in volume:
-        return volume
-
-    DISKINFO[volume] = {}
-    DISKINFO[volume]["Name"] = volume
-    DISKINFO[volume]["Type"] = "Partition"
-    DISKINFO[volume]["HostDevice"] = host_disk
-    DISKINFO[volume]["Partitions"] = []
-    DISKINFO[host_disk]["Partitions"].append(volume)
-    DISKINFO[volume]["Vendor"] = get_vendor(subnode)
-    DISKINFO[volume]["Product"] = "Host Device: "+DISKINFO[host_disk]["Product"]
-    DISKINFO[volume]["RawCapacity"], DISKINFO[volume]["Capacity"] = get_capacity(subnode)
-
-    if isinstance(subnode.description.string, bytes):
-        #NOTE: is this ever bytes?
-        DISKINFO[volume]["Description"] = subnode.description.string.decode("utf-8")
-
-    else:
-        DISKINFO[volume]["Description"] = subnode.description.string
-
-    DISKINFO[volume]["Flags"] = get_capabilities(subnode)
-
-    #Fix bug: don't try to get file systems of extended partitions.
-    if "extended" in DISKINFO[volume]["Flags"]:
-        DISKINFO[volume]["FileSystem"] = "N/A"
-
-    else:
-        DISKINFO[volume]["FileSystem"] = get_file_system(subnode)
-
-    DISKINFO[volume]["Partitioning"] = "N/A"
-    DISKINFO[volume]["UUID"] = get_uuid(volume)
-    DISKINFO[volume]["ID"] = get_id(volume)
-    DISKINFO[volume]["BootRecord"], DISKINFO[volume]["BootRecordStrings"] = get_boot_record(volume)
-
-    return volume
 
 def get_vendor(data):
     """
@@ -447,12 +400,13 @@ def get_description(data, disk):
     drive_letter = "<unknown>"
 
     try:
-        cmd = subprocess.run(["cygpath", "-w", disk], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             check=True)
+        cmd = subprocess.run(["cygpath", "-w", disk], stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, check=True)
 
     except (subprocess.CalledProcessError, OSError):
         #Disk doesn't exist or no Windows equivelant.
-        pass
+        ERRORS.append("cygwin.get_description(): Disk "+disk+" doesn't exist or has no Windows"
+                      + " equivelant\n")
 
     else:
         output = cmd.stdout.decode("utf-8", errors="replace").strip()
@@ -471,7 +425,7 @@ def get_description(data, disk):
     if bus_protocol != "Unknown":
         return "Drive "+drive_letter+", (Connected through "+bus_protocol+")"
 
-    elif drive_letter != "<unknown>":
+    if drive_letter != "<unknown>":
         return "Drive "+drive_letter
 
     return "N/A"
@@ -581,7 +535,7 @@ def get_uuid(output):
     """
     Private, implementation detail.
 
-    This function gets the partition scheme from
+    This function gets the UUID from
     blkid's output.
 
     Args:
@@ -655,21 +609,25 @@ def get_boot_record(disk):
     """
 
     #Use status=none to avoid getting status messages from dd in our boot record.
-    cmd = subprocess.run("dd if="+disk+" bs=512 count=1 status=none", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, shell=True)
+    cmd = subprocess.run(["dd", "if="+disk, "bs=512", "count=1", "status=none"],
+                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+
     boot_record = cmd.stdout
     return_value = cmd.returncode
 
     if return_value != 0:
-        return (b"Unknown", [b"Unknown"])
+        return ("Unknown", ["Unknown"])
 
     #Get the readable strings in the boot record.
-    cmd = subprocess.Popen("strings", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
-    cmd.stdin.write(boot_record)
-    boot_record_strings = cmd.communicate()[0].replace(b" ", b"").split(b"\n")
-    return_value = cmd.returncode
+    with subprocess.Popen(["strings"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT) as cmd:
+
+        cmd.stdin.write(boot_record)
+        boot_record_strings = cmd.communicate()[0].decode("utf-8", errors="replace").replace(" ", "").split("\n")
+        return_value = cmd.returncode
 
     if return_value != 0:
-        return (boot_record, [b"Unknown"])
+        return (boot_record, ["Unknown"])
 
     return (boot_record, boot_record_strings)
 
@@ -719,7 +677,15 @@ def get_block_size(disk):
             count += 1
 
             if count >= 5:
+                ERRORS.append("cygwin.get_block_size(): Fork/other error encountered too many"
+                               + " times trying to run smartctl\n")
                 return None
+
+        except subprocess.CalledProcessError as err:
+            ERRORS.append("cygwin.get_block_size(): Error encountered running smart ctl: "
+                          + str(err)+"\n")
+
+            return None
 
         else:
             break
@@ -744,7 +710,7 @@ def compute_block_size(stdout):
 
     Usage:
 
-    >>> compute_block_size(<stdoutFromBlockDev>)
+    >>> compute_block_size(<stdoutFromSmartctl>)
     """
 
     try:
@@ -752,6 +718,9 @@ def compute_block_size(stdout):
 
     except ValueError:
         #Not a valid JSON document!
+        ERRORS.append("cygwin.compute_block_size(): smartctl output is not valid JSON! Output: "
+                      + stdout+"\n")
+
         return None
 
     #If the information isn't available, just return none.

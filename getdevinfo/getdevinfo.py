@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Device Information Obtainer
 # This file is part of GetDevInfo.
-# Copyright (C) 2013-2020 Hamish McIntyre-Bhatty
+# Copyright (C) 2013-2022 Hamish McIntyre-Bhatty
 # GetDevInfo is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3 or,
 # at your option, any later version.
@@ -45,16 +45,17 @@ disk information as a dictionary.
     :platform: Linux, macOS, Cygwin
     :synopsis: The main part of the GetDevInfo module.
 
-.. moduleauthor:: Hamish McIntyre-Bhatty <hamishmb@live.co.uk>
+.. moduleauthor:: Hamish McIntyre-Bhatty <support@hamishmb.com>
 
 """
 
 import platform
+import sys
 
 #Declare version; useful for users of the module.
-VERSION = "1.1.1"
+VERSION = "2.0.0"
 
-def get_info():
+def get_info(name_main=False):
     """
     This function is used to determine the platform you're using
     (Linux or macOS) and run the relevant tools. Then, it returns
@@ -81,40 +82,68 @@ def get_info():
 
     #Determine if running on Linux or Mac.
     if platform.system() == 'Linux':
-        linux = True
-        cygwin = False
+        is_linux = True
+        is_cygwin = False
 
     elif "CYGWIN" in platform.system():
-        linux = True
-        cygwin = True
+        is_linux = True
+        is_cygwin = True
 
     elif platform.system() == "Darwin":
-        linux = False
-        cygwin = False
+        is_linux = False
+        is_cygwin = False
 
-    if linux and not cygwin:
+    #Used to temporarily hold errors.
+    temp_errors = []
+
+    if is_linux and not is_cygwin:
         from . import linux
-        linux.get_info()
-        diskinfo = linux.DISKINFO
+        get_info_platform = linux.get_info
 
-    elif cygwin:
+    elif is_cygwin:
         from . import cygwin
-        cygwin.get_info()
-        diskinfo = cygwin.DISKINFO
+        get_info_platform = cygwin.get_info
 
     else:
         from . import macos
-        macos.get_info()
-        diskinfo = macos.DISKINFO
+        get_info_platform = macos.get_info
 
-    return diskinfo
+    get_info_platform()
+
+    if is_linux and not is_cygwin:
+        diskinfo = linux.DISKINFO
+        errors = linux.ERRORS
+
+    elif is_cygwin:
+        diskinfo = cygwin.DISKINFO
+        errors = cygwin.ERRORS
+
+    else:
+        diskinfo = macos.DISKINFO
+        errors = macos.ERRORS
+
+    if temp_errors:
+        for error in temp_errors:
+            errors.append(error)
+
+    if name_main is False:
+        with open("/tmp/getdevinfo.errors", "w", encoding="utf-8") as errors_file:
+            errors_file.writelines(errors)
+
+        return diskinfo
+
+    return diskinfo, errors
 
 #For development only.
 def run():
+    """
+    Allows the module to be run with -m.
+    """
+
     #Run with python -m from outside package.
     # eg:
-    #   python(3) -m getdevinfo.getdevinfo
-    disk_info = get_info()
+    #   python3 -m getdevinfo
+    disk_info, errors = get_info(name_main=True)
 
     #Print the info in a (semi :D) readable way.
     keys = list(disk_info)
@@ -123,5 +152,10 @@ def run():
     for key in keys:
         print("\n\n", disk_info[key], "\n\n")
 
-if __name__ == "__main__":
-    run()
+    #Print out any errors, if there are any.
+    if errors:
+        print("Errors encountered:")
+        for error in errors:
+            print("\n\n", error, "\n\n")
+
+        sys.exit(1)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Linux Tests for GetDevInfo
 # This file is part of GetDevInfo.
-# Copyright (C) 2013-2020 Hamish McIntyre-Bhatty
+# Copyright (C) 2013-2022 Hamish McIntyre-Bhatty
 # GetDevInfo is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3 or,
 # at your option, any later version.
@@ -308,8 +308,8 @@ class TestParseLSBLKOutput(unittest.TestCase):
     def test_parse_lsblk_output_1(self):
         """Test #1: Test that this returns expected results with good data in normal circumstances"""
         linux.LSBLKOUTPUT = data.return_fake_lsblk_output_good_1()
-        linux.LSUUIDOUTPUT = b""
-        linux.LSIDOUTPUT = b""
+        linux.LSUUIDOUTPUT = ""
+        linux.LSIDOUTPUT = ""
 
         diskinfo = data.return_fake_lsblk_output_good_1_diskinfo()
 
@@ -323,8 +323,8 @@ class TestParseLSBLKOutput(unittest.TestCase):
     def test_parse_lsblk_output_2(self):
         """Test #2: Test that this returns expected results with missing vendor, model and size elements for devices"""
         linux.LSBLKOUTPUT = data.return_fake_lsblk_output_bad_1()
-        linux.LSUUIDOUTPUT = b""
-        linux.LSIDOUTPUT = b""
+        linux.LSUUIDOUTPUT = ""
+        linux.LSIDOUTPUT = ""
 
         diskinfo = data.return_fake_lsblk_output_bad_1_diskinfo()
 
@@ -338,8 +338,8 @@ class TestParseLSBLKOutput(unittest.TestCase):
     def test_parse_lsblk_output_3(self):
         """Test #3: Test that this returns expected results with missing uuid, fstype, and size elements for children"""
         linux.LSBLKOUTPUT = data.return_fake_lsblk_output_bad_2()
-        linux.LSUUIDOUTPUT = b""
-        linux.LSIDOUTPUT = b""
+        linux.LSUUIDOUTPUT = ""
+        linux.LSIDOUTPUT = ""
 
         diskinfo = data.return_fake_lsblk_output_bad_2_diskinfo()
 
@@ -350,8 +350,8 @@ class TestParseLSBLKOutput(unittest.TestCase):
     def test_parse_lsblk_output_4(self):
         """Test #4: Test that this returns nothing when lsblk returns invalid JSON"""
         linux.LSBLKOUTPUT = data.return_fake_lsblk_output_bad_3()
-        linux.LSUUIDOUTPUT = b""
-        linux.LSIDOUTPUT = b""
+        linux.LSUUIDOUTPUT = ""
+        linux.LSIDOUTPUT = ""
 
         diskinfo = {}
 
@@ -376,9 +376,13 @@ class TestParseLVMOutput(unittest.TestCase):
         """Test #1: Test that we run without error and that the result is as expected."""
         linux.parse_lvm_output(testing=True)
 
-        print(linux.DISKINFO)
+        try:
+            self.assertEqual(linux.DISKINFO, self.correct_disk_info)
 
-        self.assertEqual(linux.DISKINFO, self.correct_disk_info)
+        except AssertionError as e:
+            functions.print_dict_diffs(linux.DISKINFO, self.correct_disk_info)
+
+            raise e
 
 class TestComputeBlockSize(unittest.TestCase):
     def setUp(self):
